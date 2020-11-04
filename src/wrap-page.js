@@ -36,6 +36,18 @@ const withIntlProvider = (intl) => children => {
   )
 }
 
+const getStorage = () => {
+  const uid = new Date;
+  let storage;
+  let result;
+  try {
+    (storage = window.localStorage).setItem(uid, uid);
+    result = storage.getItem(uid) == uid;
+    storage.removeItem(uid);
+    return result && storage;
+  } catch (exception) {}
+}
+
 export default ({ element, props }, pluginOptions) => {
   if (!props) {
     return
@@ -57,12 +69,19 @@ export default ({ element, props }, pluginOptions) => {
 
     // Skip build, Browsers only
     if (typeof window !== "undefined") {
-      let detected =
-        window.localStorage.getItem("gatsby-intl-language") ||
-        browserLang({
+      let detected
+
+      const localStorage = getStorage()
+      if (localStorage) {
+        detected = window.localStorage.getItem("gatsby-intl-language")
+      }
+
+      if (!detected) {
+        detected = browserLang({
           languages,
           fallback: language,
         })
+      }
 
       if (!languages.includes(detected)) {
         detected = language
@@ -70,7 +89,11 @@ export default ({ element, props }, pluginOptions) => {
 
       const queryParams = search || ""
       const newUrl = withPrefix(`/${detected}${originalPath}${queryParams}`)
-      window.localStorage.setItem("gatsby-intl-language", detected)
+
+      if (localStorage) {
+        localStorage.setItem("gatsby-intl-language", detected)
+      }
+
       window.location.replace(newUrl)
     }
   }
